@@ -4,10 +4,15 @@ import com.lacoca.lacoquinha.DTO.RequestDTO.PessoasRequestDTO;
 import com.lacoca.lacoquinha.DTO.ResponseDTO.PessoasResponseDTO;
 import com.lacoca.lacoquinha.Model.PessoasModel;
 import com.lacoca.lacoquinha.Service.PessoasService;
+import org.springframework.core.io.Resource;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
@@ -54,5 +59,21 @@ public class PessoasController {
     public ResponseEntity<Void> excluir(@PathVariable UUID id) {
         pessoasservice.deletar(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping(path = "/{id}/foto", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<PessoasResponseDTO> enviarFoto(
+            @PathVariable UUID id,
+            @RequestParam("foto") MultipartFile foto) {
+
+        PessoasModel pessoa = pessoasservice.salvarFoto(id, foto);
+        return ResponseEntity.ok(new PessoasResponseDTO(pessoa));
+    }
+
+    @GetMapping("/{id}/foto")
+    public ResponseEntity<Resource> buscarFoto(@PathVariable UUID id) {
+        PessoasService.FotoArquivo foto = pessoasservice.carregarFoto(id);
+
+        return ResponseEntity.ok().contentType(foto.tipoConteudo()).body(foto.arquivo());
     }
 }

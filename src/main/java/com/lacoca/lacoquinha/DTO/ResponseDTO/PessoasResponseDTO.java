@@ -11,11 +11,15 @@ public class PessoasResponseDTO {
     private UUID id;
     private String nome;
     private String apelido;
+    private String fotoUrl;
 
     public PessoasResponseDTO (PessoasModel model){
         this.id = model.getId();
         this.nome = model.getNome();
         this.apelido = model.getApelido();
+        this.fotoUrl = model.getFotoNome() == null
+                ? null
+                : "/pessoas/" + model.getId() + "/foto";
     }
 
     public UUID getId(){
@@ -28,5 +32,9 @@ public class PessoasResponseDTO {
 
     public String getApelido(){
         return apelido;
+    }
+
+    public String getFotoUrl() {
+        return fotoUrl;
     }
 }

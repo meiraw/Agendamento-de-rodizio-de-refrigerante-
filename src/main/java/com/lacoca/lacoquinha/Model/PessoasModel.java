@@ -20,5 +20,6 @@ public class PessoasModel {
     @Column(nullable = false)
     private String apelido;
 
-
+    @Column(name = "foto_nome")
+    private String fotoNome;
 }
