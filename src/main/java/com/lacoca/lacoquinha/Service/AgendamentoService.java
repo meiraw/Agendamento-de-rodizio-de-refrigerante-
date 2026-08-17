@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-
 public class AgendamentoService {
 
     @Autowired
@@ -33,7 +32,8 @@ public class AgendamentoService {
     private ParticipanteRepository participanteRepository;
 
 
-    public List<AgendamentoModel> gerarAgendamentos(UUID cicloId ){
+    public List<AgendamentoModel> gerarAgendamentos(UUID cicloId) {
+
         CicloModel ciclo = cicloRepository.findById(cicloId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Ciclo não encontrado!"));
@@ -44,11 +44,13 @@ public class AgendamentoService {
             );
         }
 
-        List<ParticipanteModel> participantes = participanteRepository.findByCicloIdOrderByOrdemAsc(cicloId);
+        List<ParticipanteModel> participantes =
+                participanteRepository.findByCicloIdOrderByOrdemAsc(cicloId);
 
         if (participantes.isEmpty()) {
             throw new ResourceNotFoundException(
-                    "O ciclo não possui participantes!");
+                    "O ciclo não possui participantes!"
+            );
         }
 
         List<AgendamentoModel> agendamentos = new ArrayList<>();
@@ -56,7 +58,23 @@ public class AgendamentoService {
         LocalDate data = ciclo.getDataInicio();
         LocalDate dataFim = ciclo.getDataFim();
 
+        /*
+         * Encontra a posição do primeiro responsável
+         * dentro da lista de participantes.
+         */
         int indiceParticipante = 0;
+
+        for (int i = 0; i < participantes.size(); i++) {
+
+            if (participantes.get(i)
+                    .getPessoa()
+                    .getId()
+                    .equals(ciclo.getPrimeiroResponsavel().getId())) {
+
+                indiceParticipante = i;
+                break;
+            }
+        }
 
         while (!data.isAfter(dataFim)) {
 
@@ -93,7 +111,7 @@ public class AgendamentoService {
 
                 indiceParticipante++;
 
-                // Voltou para o primeiro participante
+                // Volta para o primeiro participante
                 if (indiceParticipante >= participantes.size()) {
                     indiceParticipante = 0;
                 }
@@ -104,6 +122,8 @@ public class AgendamentoService {
 
         return agendamentoRepository.saveAll(agendamentos);
     }
+
+
     public List<AgendamentoModel> listarPorCiclo(UUID cicloId) {
 
         cicloRepository.findById(cicloId)
@@ -114,11 +134,15 @@ public class AgendamentoService {
                 .findByCicloIdOrderByDataAsc(cicloId);
     }
 
+
     public AgendamentoModel marcarComoPago(UUID agendamentoId) {
 
-        AgendamentoModel agendamento = agendamentoRepository.findById(agendamentoId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Agendamento não encontrado!"));
+        AgendamentoModel agendamento =
+                agendamentoRepository.findById(agendamentoId)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Agendamento não encontrado!"
+                                ));
 
         if (agendamento.getTipo() != TipoAgendamento.PAGAMENTO) {
             throw new IllegalStateException(
@@ -137,13 +161,16 @@ public class AgendamentoService {
         return agendamentoRepository.save(agendamento);
     }
 
+
     @Transactional
     public AgendamentoModel adiarAgendamento(UUID agendamentoId) {
 
-        AgendamentoModel agendamento = agendamentoRepository.findById(agendamentoId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Agendamento não encontrado!")
-                );
+        AgendamentoModel agendamento =
+                agendamentoRepository.findById(agendamentoId)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Agendamento não encontrado!"
+                                ));
 
         // Só pagamento pode ser adiado
         if (agendamento.getTipo() != TipoAgendamento.PAGAMENTO) {
@@ -173,28 +200,19 @@ public class AgendamentoService {
         }
 
         /*
-         * Busca TODOS os pagamentos a partir da próxima sexta,
+         * Busca todos os pagamentos a partir da próxima sexta,
          * do mais distante para o mais próximo.
-         *
-         * Exemplo:
-         *
-         * 25/09 André
-         * 18/09 Marcos
-         * 11/09 Lucas
-         * 04/09 Pedro
          */
-        List<AgendamentoModel> pagamentos = agendamentoRepository
-                .findByCicloIdAndTipoAndDataGreaterThanEqualOrderByDataDesc(
-                        ciclo.getId(),
-                        TipoAgendamento.PAGAMENTO,
-                        novaData
-                );
+        List<AgendamentoModel> pagamentos =
+                agendamentoRepository
+                        .findByCicloIdAndTipoAndDataGreaterThanEqualOrderByDataDesc(
+                                ciclo.getId(),
+                                TipoAgendamento.PAGAMENTO,
+                                novaData
+                        );
 
         /*
          * Desloca cada pagamento uma sexta-feira para frente.
-         *
-         * Fazemos do mais distante para o mais próximo
-         * para evitar sobrescrever a data de outro pagamento.
          */
         for (AgendamentoModel pagamento : pagamentos) {
 
@@ -204,14 +222,10 @@ public class AgendamentoService {
             pagamento.setData(novaDataPagamento);
         }
 
-        /*
-         * Salva os pagamentos deslocados.
-         */
         agendamentoRepository.saveAll(pagamentos);
 
         /*
-         * O agendamento original permanece no banco
-         * como histórico.
+         * Mantém o agendamento original como histórico.
          */
         agendamento.setStatus(StatusAgendamento.ADIADO);
 
@@ -229,14 +243,8 @@ public class AgendamentoService {
         novoAgendamento.setCiclo(ciclo);
         novoAgendamento.setParticipante(agendamento.getParticipante());
 
-        /*
-         * Se a nova data ultrapassar o fim do ciclo,
-         * neste momento não alteramos o dataFim automaticamente.
-         *
-         * Essa regra será tratada separadamente.
-         */
-
         return agendamentoRepository.save(novoAgendamento);
     }
 }
+
 
